@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPACE Mentor Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="brand-strip">
+    <img src="assets/space-header.png" alt="SPACE program logo">
+  </header>
+
+  <div class="app-shell">
+    <section class="workspace-header">
+      <div>
+        <p class="eyebrow">SPACE Mentor Tracker</p>
+        <h1>Mentor session tracking</h1>
+        <p class="workspace-copy">
+          Log who each mentor cased, the case they used, and keep the cohort and case list in one shared place.
+        </p>
+      </div>
+
+      <div class="workspace-tools">
+        <div class="storage-card">
+          <span class="storage-label">Storage</span>
+          <strong id="storage-mode">Loading...</strong>
+          <span class="storage-detail" id="storage-detail">Checking available storage</span>
+        </div>
+
+        <div class="action-row">
+          <button class="button secondary" id="refresh-data" type="button">Refresh data</button>
+          <button class="button secondary" id="export-data" type="button">Export backup</button>
+          <label class="button secondary file-button" for="import-data">
+            Import backup
+            <input id="import-data" type="file" accept=".json">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="summary-grid" aria-label="Program summary">
+      <article class="summary-card">
+        <span class="summary-label">Cohort size</span>
+        <strong class="summary-value" id="summary-cohort">0</strong>
+        <span class="summary-detail" id="summary-uncased">0 still need casing</span>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Sessions logged</span>
+        <strong class="summary-value" id="summary-sessions">0</strong>
+        <span class="summary-detail" id="summary-most-active">No mentor activity yet</span>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Cases in library</span>
+        <strong class="summary-value" id="summary-cases">0</strong>
+        <span class="summary-detail" id="summary-case-coverage">No case usage yet</span>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Students reached</span>
+        <strong class="summary-value" id="summary-reached">0</strong>
+        <span class="summary-detail" id="summary-last-session">No sessions logged yet</span>
+      </article>
+    </section>
+
+    <nav class="tab-bar" aria-label="Tracker sections">
+      <button class="tab-button active" data-tab="tracker" type="button">Mentor Tracker</button>
+      <button class="tab-button" data-tab="cohort" type="button">Cohort Coverage</button>
+      <button class="tab-button" data-tab="cases" type="button">Case Library</button>
+    </nav>
+
+    <main class="panel-stack">
+      <section class="panel active" id="panel-tracker" aria-labelledby="tracker-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Tracker</p>
+            <h2 id="tracker-heading">Log mentor sessions and review recent activity.</h2>
+          </div>
+          <p class="section-copy">
+            This tab is the working log for the program. Add sessions here and use the tables below to track coverage.
+          </p>
+        </div>
+
+        <div class="two-column">
+          <form class="surface-card" id="session-form">
+            <div class="section-header">
+              <div>
+                <h3>New session</h3>
+                <p>Record the mentor, the student, and the case used.</p>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <label class="field">
+                <span>Date</span>
+                <input id="session-date" name="sessionDate" type="date" required>
+              </label>
+
+              <label class="field">
+                <span>Mentor</span>
+                <select id="session-mentor" name="mentor" required></select>
+              </label>
+
+              <label class="field">
+                <span>Cohort member</span>
+                <select id="session-student" name="student" required></select>
+              </label>
+
+              <label class="field">
+                <span>Case from library</span>
+                <select id="session-case" name="case">
+                  <option value="">Select a case</option>
+                </select>
+              </label>
+
+              <label class="field field-wide">
+                <span>New case title</span>
+                <input id="session-custom-case" name="customCase" type="text" placeholder="Use this if the case is not in the library yet">
+              </label>
+
+              <label class="field field-wide">
+                <span>Notes</span>
+                <textarea id="session-notes" name="notes" rows="4" placeholder="Optional session notes"></textarea>
+              </label>
+            </div>
+
+            <label class="checkbox-row" for="session-add-case">
+              <input id="session-add-case" name="addCaseToLibrary" type="checkbox" checked>
+              <span>Add new case titles to the library automatically</span>
+            </label>
+
+            <div class="form-actions">
+              <button class="button primary" type="submit">Save session</button>
+              <p class="status-text" id="session-status" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+
+          <aside class="surface-card">
+            <div class="section-header">
+              <div>
+                <h3>Coverage snapshot</h3>
+                <p>Quick view of who still needs to be cased.</p>
+              </div>
+            </div>
+
+            <div class="info-stack">
+              <div class="info-block">
+                <span class="info-label">Students still uncased</span>
+                <ul class="simple-list" id="uncased-list"></ul>
+              </div>
+
+              <div class="info-block">
+                <span class="info-label">Storage note</span>
+                <p class="helper-text" id="storage-note">
+                  Shared storage status will appear here after the app finishes loading.
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="surface-card">
+          <div class="section-header">
+            <div>
+              <h3>Mentor summary</h3>
+              <p>Use this table to see mentor coverage at a glance.</p>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mentor</th>
+                  <th>Sessions</th>
+                  <th>Students reached</th>
+                  <th>Cases used</th>
+                  <th>Last session</th>
+                </tr>
+              </thead>
+              <tbody id="mentor-summary-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="surface-card">
+          <div class="table-toolbar">
+            <div class="section-header">
+              <div>
+                <h3>Recent sessions</h3>
+                <p>Remove incorrect entries directly from the log.</p>
+              </div>
+            </div>
+
+            <label class="field field-compact">
+              <span>Filter by mentor</span>
+              <select id="session-filter">
+                <option value="all">All mentors</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Mentor</th>
+                  <th>Student</th>
+                  <th>Case</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="session-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel" id="panel-cohort" aria-labelledby="cohort-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Cohort</p>
+            <h2 id="cohort-heading">Track student coverage across the whole roster.</h2>
+          </div>
+          <p class="section-copy">
+            The Spring 2026 cohort is preloaded from the workbook. You can still add students if the roster changes.
+          </p>
+        </div>
+
+        <div class="two-column cohort-grid">
+          <section class="surface-card">
+            <div class="table-toolbar">
+              <div class="section-header">
+                <div>
+                  <h3>Cohort roster</h3>
+                  <p>Search by student name and review current status.</p>
+                </div>
+              </div>
+
+              <label class="field field-compact">
+                <span>Search students</span>
+                <input id="cohort-search" type="search" placeholder="Search by name">
+              </label>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Status</th>
+                    <th>Mentors</th>
+                    <th>Cases used</th>
+                    <th>Last session</th>
+                  </tr>
+                </thead>
+                <tbody id="cohort-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="surface-card">
+            <div class="section-header">
+              <div>
+                <h3>Add student</h3>
+                <p>Add a cohort member if the roster changes.</p>
+              </div>
+            </div>
+
+            <form id="student-form">
+              <label class="field">
+                <span>Full name</span>
+                <input id="student-name" name="studentName" type="text" required placeholder="New cohort member">
+              </label>
+
+              <div class="form-actions">
+                <button class="button primary" type="submit">Add to cohort</button>
+                <p class="status-text" id="student-status" role="status" aria-live="polite"></p>
+              </div>
+            </form>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-cases" aria-labelledby="cases-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Cases</p>
+            <h2 id="cases-heading">Maintain the case library mentors can pull from.</h2>
+          </div>
+          <p class="section-copy">
+            Add cases manually now, or import a CSV or JSON file later when the full case bank is ready.
+          </p>
+        </div>
+
+        <div class="two-column cases-grid">
+          <section class="surface-card">
+            <div class="section-header">
+              <div>
+                <h3>Add case</h3>
+                <p>Keep the library current as mentors add new material.</p>
+              </div>
+            </div>
+
+            <form class="form-grid" id="case-form">
+              <label class="field">
+                <span>Case title</span>
+                <input id="case-title" name="title" type="text" required placeholder="Case title">
+              </label>
+
+              <label class="field">
+                <span>Category</span>
+                <input id="case-category" name="category" type="text" placeholder="Category">
+              </label>
+
+              <label class="field">
+                <span>Difficulty</span>
+                <select id="case-difficulty" name="difficulty">
+                  <option value="">Select difficulty</option>
+                  <option value="Foundational">Foundational</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Source or link</span>
+                <input id="case-link" name="link" type="url" placeholder="https://">
+              </label>
+
+              <label class="field field-wide">
+                <span>Notes</span>
+                <textarea id="case-notes" name="notes" rows="4" placeholder="Optional notes"></textarea>
+              </label>
+            </form>
+
+            <div class="form-actions">
+              <button class="button primary" form="case-form" type="submit">Add case</button>
+              <p class="status-text" id="case-status" role="status" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <aside class="surface-card">
+            <div class="section-header">
+              <div>
+                <h3>Import and export</h3>
+                <p>Bring in a larger case bank later without changing the app.</p>
+              </div>
+            </div>
+
+            <div class="stack-actions">
+              <label class="button secondary file-button" for="case-import">
+                Import CSV or JSON
+                <input id="case-import" type="file" accept=".csv,.json">
+              </label>
+
+              <button class="button secondary" id="export-cases" type="button">Export case library</button>
+            </div>
+
+            <p class="helper-text">
+              CSV headers supported: <code>title</code>, <code>category</code>, <code>difficulty</code>,
+              <code>link</code>, <code>notes</code>.
+            </p>
+          </aside>
+        </div>
+
+        <section class="surface-card">
+          <div class="section-header">
+            <div>
+              <h3>Case library</h3>
+              <p>Delete cases here if they should no longer appear in the library.</p>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Difficulty</th>
+                  <th>Used</th>
+                  <th>Source</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="case-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="storage-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
