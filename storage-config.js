@@ -1,5 +1,5 @@
 window.SPACE_STORAGE_CONFIG = {
-  provider: "local",
+  provider: "supabase",
   supabaseUrl: "https://xznxzljfyhamdketkfcd.supabase.co",
   supabaseAnonKey: "sb_publishable_xqxB-imjvQWHYFjklFiEqg_IcMbTymU",
   autoRefreshMs: 60000,
