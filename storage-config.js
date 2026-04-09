@@ -1,7 +1,7 @@
 window.SPACE_STORAGE_CONFIG = {
   provider: "local",
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  supabaseUrl: "https://xznxzljfyhamdketkfcd.supabase.co",
+  supabaseAnonKey: "sb_publishable_xqxB-imjvQWHYFjklFiEqg_IcMbTymU",
   autoRefreshMs: 60000,
   tables: {
     cohort: "space_cohort_members",

@@ -8,7 +8,7 @@ create table if not exists public.space_cases (
   title text not null,
   category text,
   difficulty text,
-  link text,
+  link text,  
   notes text
 );
 
