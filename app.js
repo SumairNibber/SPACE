@@ -29,7 +29,6 @@ const DEFAULT_MENTORS = [
   "Tanmay",
   "Evan",
   "Sumair",
-  "Seyvik",
 ];
 
 const DEFAULT_CASES = [];
