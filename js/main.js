@@ -1,5 +1,26 @@
+/**
+ * SPACE Mentor Tracker — js/main.js
+ *
+ * Core application logic: initialization, navigation, theme toggling,
+ * storage sync, form handlers, data rendering, and live dashboard stats.
+ *
+ * AI-assisted: Claude (claude.ai) scaffolded the Supabase storage abstraction,
+ * the CSV/JSON import parser, and the dashboard stats renderer. GitHub Copilot
+ * assisted with render functions and repetitive DOM patterns. All AI-generated
+ * code was reviewed and tested before inclusion.
+ *
+ * @see js/storage-config.js — sets window.SPACE_STORAGE_CONFIG before this file runs
+ */
+
+// Set to true to enable verbose console logging during development
+const DEBUG = false;
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+
 const LOCAL_STORAGE_PRIMARY_KEY = "space-mentor-tracker:v2";
 const LOCAL_STORAGE_FALLBACK_KEYS = [LOCAL_STORAGE_PRIMARY_KEY, "space-mentor-tracker:v1"];
+const LS_THEME_KEY = "space-theme";
+const LS_TAB_KEY = "space-active-tab";
 
 const DEFAULT_COHORT = [
   "Samuel Puhachevsky",
@@ -33,6 +54,8 @@ const DEFAULT_MENTORS = [
 
 const DEFAULT_CASES = [];
 
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
 const elements = {};
 let state = buildDefaultState();
 let storageProvider = null;
@@ -41,18 +64,39 @@ let lastSyncAt = null;
 
 document.addEventListener("DOMContentLoaded", initializeApp);
 
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
 async function initializeApp() {
+  // Apply saved theme before first paint to prevent flash
+  const savedTheme = localStorage.getItem(LS_THEME_KEY);
+  if (savedTheme === "dark") {
+    document.body.setAttribute("data-theme", "dark");
+  }
+
   cacheElements();
   bindEvents();
+
+  // Sync toggle button icon with the applied theme
+  if (savedTheme === "dark" && elements.themeToggle) {
+    elements.themeToggle.textContent = "☀️";
+  }
+
+  // Restore the last active tab (default: sessions)
+  const savedTab = localStorage.getItem(LS_TAB_KEY) || "sessions";
+  activateTab(savedTab);
+
   storageProvider = createStorageProvider();
   renderStorageStatus();
   await syncFromStorage({ announce: false });
   startAutoRefresh();
 }
 
+// Cache all DOM element references once on startup
 function cacheElements() {
   elements.tabButtons = Array.from(document.querySelectorAll(".tab-button"));
   elements.panels = Array.from(document.querySelectorAll(".panel"));
+
+  elements.themeToggle = document.getElementById("theme-toggle");
 
   elements.storageMode = document.getElementById("storage-mode");
   elements.storageDetail = document.getElementById("storage-detail");
@@ -101,12 +145,26 @@ function cacheElements() {
   elements.caseImport = document.getElementById("case-import");
   elements.exportCases = document.getElementById("export-cases");
   elements.caseTableBody = document.getElementById("case-table-body");
+
+  // Dashboard stat elements
+  elements.dashTotalSessions = document.getElementById("dash-total-sessions");
+  elements.dashCasedCount = document.getElementById("dash-cased-count");
+  elements.dashUncasedCount = document.getElementById("dash-uncased-count");
+  elements.dashUncasedCard = document.getElementById("dash-uncased-card");
+  elements.dashMostUsedCase = document.getElementById("dash-most-used-case");
+  elements.dashCoverageBar = document.getElementById("dash-coverage-bar");
+  elements.dashCoverageLabel = document.getElementById("dash-coverage-label");
 }
 
+// Attach all DOM event listeners
 function bindEvents() {
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
+
+  if (elements.themeToggle) {
+    elements.themeToggle.addEventListener("click", toggleTheme);
+  }
 
   elements.refreshData.addEventListener("click", () => {
     void syncFromStorage({ announce: true });
@@ -136,6 +194,8 @@ function buildDefaultState() {
   };
 }
 
+// ─── STORAGE PROVIDERS ───────────────────────────────────────────────────────
+
 function getStorageConfig() {
   const raw = window.SPACE_STORAGE_CONFIG || {};
   return {
@@ -160,6 +220,7 @@ function createStorageProvider() {
   return createLocalProvider();
 }
 
+// Browser localStorage provider — used when Supabase is not configured
 function createLocalProvider() {
   return {
     kind: "local",
@@ -206,6 +267,7 @@ function createLocalProvider() {
   };
 }
 
+// Supabase REST API provider — AI-assisted: Claude scaffolded the request/upsert pattern
 function createSupabaseProvider(config) {
   const baseUrl = config.supabaseUrl.replace(/\/$/, "");
   const authHeaders = {
@@ -309,6 +371,9 @@ function createSupabaseProvider(config) {
   };
 }
 
+// ─── SYNC ─────────────────────────────────────────────────────────────────────
+
+// Load state from the configured provider and update the UI
 async function syncFromStorage(options = {}) {
   const { announce = true, quiet = false } = options;
 
@@ -344,6 +409,7 @@ async function syncFromStorage(options = {}) {
   }
 }
 
+// Poll for remote updates while the tab is visible
 function startAutoRefresh() {
   if (!storageProvider || !storageProvider.autoRefreshMs) {
     return;
@@ -360,6 +426,40 @@ function startAutoRefresh() {
   }, storageProvider.autoRefreshMs);
 }
 
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+
+// Show the selected section, hide others, persist choice to localStorage
+function activateTab(tabId) {
+  elements.tabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === tabId);
+  });
+
+  elements.panels.forEach((panel) => {
+    panel.classList.toggle("active", panel.id === `view-${tabId}`);
+  });
+
+  localStorage.setItem(LS_TAB_KEY, tabId);
+}
+
+// ─── THEME ───────────────────────────────────────────────────────────────────
+
+// Toggle between light and dark mode, persist preference to localStorage
+function toggleTheme() {
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  if (isDark) {
+    document.body.removeAttribute("data-theme");
+    elements.themeToggle.textContent = "🌙";
+    localStorage.setItem(LS_THEME_KEY, "light");
+  } else {
+    document.body.setAttribute("data-theme", "dark");
+    elements.themeToggle.textContent = "☀️";
+    localStorage.setItem(LS_THEME_KEY, "dark");
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+
+// Re-render every section of the app with current state
 function refreshApp() {
   ensureDefaultDate();
   populateSelects();
@@ -369,6 +469,7 @@ function refreshApp() {
   renderRecentSessions();
   renderCohortTable();
   renderCaseTable();
+  renderDashboard();
 }
 
 function renderStorageStatus(error) {
@@ -402,6 +503,7 @@ function ensureDefaultDate() {
   }
 }
 
+// Sync <select> options without wiping the current selection
 function populateSelects() {
   syncSelectOptions(
     elements.sessionMentor,
@@ -457,15 +559,214 @@ function syncSelectOptions(select, options, placeholder, placeholderValue = "") 
   }
 }
 
-function activateTab(tabId) {
-  elements.tabButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.tab === tabId);
+// Update the top-of-page summary cards
+function renderSummary() {
+  const sessions = getSortedSessions();
+  const studentKeys = new Set(sessions.map((session) => session.studentId || normalizeText(session.studentName)));
+  const uncasedCount = Math.max(state.cohort.length - studentKeys.size, 0);
+  const latestSession = sessions[0];
+  const mostActive = getMostActiveMentor();
+  const uniqueCasesUsed = uniqueValues(sessions.map((session) => session.caseTitle));
+
+  elements.summaryCohort.textContent = String(state.cohort.length);
+  elements.summaryUncased.textContent =
+    uncasedCount === 0 ? "Everyone has been cased at least once" : `${uncasedCount} still need casing`;
+  elements.summarySessions.textContent = String(sessions.length);
+  elements.summaryMostActive.textContent = mostActive
+    ? `${mostActive.name} leads with ${mostActive.count} session${mostActive.count === 1 ? "" : "s"}`
+    : "No mentor activity yet";
+  elements.summaryCases.textContent = String(state.cases.length);
+  elements.summaryCaseCoverage.textContent = uniqueCasesUsed.length
+    ? `${uniqueCasesUsed.length} unique case${uniqueCasesUsed.length === 1 ? "" : "s"} used`
+    : "No case usage yet";
+  elements.summaryReached.textContent = String(studentKeys.size);
+  elements.summaryLastSession.textContent = latestSession
+    ? `Latest: ${latestSession.mentorName} with ${latestSession.studentName} on ${formatHumanDate(latestSession.date)}`
+    : "No sessions logged yet";
+}
+
+// Refresh the uncased students list in the Sessions panel sidebar
+function renderCoverageSnapshot() {
+  const studentSessionMap = buildStudentSessionMap();
+  const uncasedStudents = state.cohort.filter((student) => !(studentSessionMap.get(student.id) || []).length);
+
+  elements.uncasedList.replaceChildren();
+  if (!uncasedStudents.length) {
+    const item = document.createElement("li");
+    item.textContent = "All students have at least one logged session.";
+    elements.uncasedList.appendChild(item);
+    return;
+  }
+
+  uncasedStudents
+    .slice()
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .forEach((student) => {
+      const item = document.createElement("li");
+      item.textContent = student.name;
+      elements.uncasedList.appendChild(item);
+    });
+}
+
+// Render the per-mentor session summary table
+function renderMentorSummary() {
+  elements.mentorSummaryBody.replaceChildren();
+
+  const rows = state.mentors.map((mentor) => {
+    const sessions = getSortedSessions().filter((session) => session.mentorId === mentor.id);
+    return {
+      mentor,
+      sessions,
+      students: uniqueValues(sessions.map((session) => session.studentName)),
+      cases: uniqueValues(sessions.map((session) => session.caseTitle)),
+    };
   });
 
-  elements.panels.forEach((panel) => {
-    panel.classList.toggle("active", panel.id === `panel-${tabId}`);
+  if (!rows.length) {
+    appendEmptyRow(elements.mentorSummaryBody, 5, "No mentor data available.");
+    return;
+  }
+
+  rows.forEach((rowData) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${escapeHtml(rowData.mentor.name)}</td>
+      <td>${rowData.sessions.length}</td>
+      <td>${escapeHtml(rowData.students.length ? rowData.students.join(", ") : "None yet")}</td>
+      <td>${escapeHtml(rowData.cases.length ? rowData.cases.join(", ") : "None yet")}</td>
+      <td>${escapeHtml(rowData.sessions[0] ? formatHumanDate(rowData.sessions[0].date) : "No activity yet")}</td>
+    `;
+    elements.mentorSummaryBody.appendChild(row);
   });
 }
+
+// Render the recent sessions log, optionally filtered by mentor
+function renderRecentSessions() {
+  const mentorFilter = elements.sessionFilter.value;
+  const sessions = getSortedSessions().filter((session) => {
+    return mentorFilter === "all" ? true : session.mentorId === mentorFilter;
+  });
+
+  elements.sessionTableBody.replaceChildren();
+  if (!sessions.length) {
+    appendEmptyRow(elements.sessionTableBody, 6, "No sessions in this view yet.");
+    return;
+  }
+
+  sessions.forEach((session) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${escapeHtml(formatHumanDate(session.date))}</td>
+      <td>${escapeHtml(session.mentorName)}</td>
+      <td>${escapeHtml(session.studentName)}</td>
+      <td>${escapeHtml(session.caseTitle)}</td>
+      <td>${escapeHtml(session.notes || "No notes")}</td>
+      <td><button class="link-button" type="button" data-action="delete-session" data-id="${session.id}">Delete</button></td>
+    `;
+    elements.sessionTableBody.appendChild(row);
+  });
+}
+
+// Render the cohort roster table, filtered by the search input
+function renderCohortTable() {
+  const searchTerm = normalizeText(elements.cohortSearch.value);
+  const studentSessionMap = buildStudentSessionMap();
+  const students = state.cohort
+    .slice()
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .filter((student) => normalizeText(student.name).includes(searchTerm));
+
+  elements.cohortTableBody.replaceChildren();
+  if (!students.length) {
+    appendEmptyRow(elements.cohortTableBody, 5, "No students match that search.");
+    return;
+  }
+
+  students.forEach((student) => {
+    const sessions = studentSessionMap.get(student.id) || [];
+    const mentors = uniqueValues(sessions.map((session) => session.mentorName));
+    const cases = uniqueValues(sessions.map((session) => session.caseTitle));
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${escapeHtml(student.name)}</td>
+      <td>${renderStatusTagHtml(sessions.length ? `${sessions.length} session${sessions.length === 1 ? "" : "s"}` : "Needs casing", !sessions.length)}</td>
+      <td>${escapeHtml(mentors.length ? mentors.join(", ") : "Not yet assigned")}</td>
+      <td>${escapeHtml(cases.length ? cases.join(", ") : "No cases logged")}</td>
+      <td>${escapeHtml(sessions[0] ? formatHumanDate(sessions[0].date) : "No activity yet")}</td>
+    `;
+    elements.cohortTableBody.appendChild(row);
+  });
+}
+
+// Render the full case library table
+function renderCaseTable() {
+  const cases = state.cases.slice().sort((left, right) => left.title.localeCompare(right.title));
+  elements.caseTableBody.replaceChildren();
+
+  if (!cases.length) {
+    appendEmptyRow(elements.caseTableBody, 6, "The case library is empty.");
+    return;
+  }
+
+  cases.forEach((caseItem) => {
+    const usageCount = state.sessions.filter((session) => session.caseId === caseItem.id || session.caseTitle === caseItem.title).length;
+    const sourceCell = caseItem.link
+      ? `<a class="table-link" href="${escapeAttribute(caseItem.link)}" target="_blank" rel="noreferrer">Open link</a>`
+      : "No link";
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${escapeHtml(caseItem.title)}</td>
+      <td>${escapeHtml(caseItem.category || "Not set")}</td>
+      <td>${escapeHtml(caseItem.difficulty || "Not set")}</td>
+      <td>${usageCount}</td>
+      <td>${sourceCell}</td>
+      <td><button class="link-button" type="button" data-action="delete-case" data-id="${caseItem.id}">Delete</button></td>
+    `;
+    elements.caseTableBody.appendChild(row);
+  });
+}
+
+// Render live dashboard stats from current in-memory state (AI-assisted: Claude)
+function renderDashboard() {
+  const sessions = getSortedSessions();
+  const studentSessionMap = buildStudentSessionMap();
+  const totalStudents = state.cohort.length;
+
+  // Count cohort students who appear in at least one session
+  const casedCount = state.cohort.filter((student) => {
+    const byId = studentSessionMap.get(student.id) || [];
+    const byName = studentSessionMap.get(normalizeText(student.name)) || [];
+    return byId.length > 0 || byName.length > 0;
+  }).length;
+
+  const uncasedCount = Math.max(totalStudents - casedCount, 0);
+  const coveragePct = totalStudents > 0 ? Math.round((casedCount / totalStudents) * 100) : 0;
+
+  // Find the case title used most across all sessions
+  const caseTitleCounts = {};
+  sessions.forEach((s) => {
+    if (s.caseTitle) {
+      caseTitleCounts[s.caseTitle] = (caseTitleCounts[s.caseTitle] || 0) + 1;
+    }
+  });
+  const sortedCases = Object.entries(caseTitleCounts).sort((a, b) => b[1] - a[1]);
+  const mostUsedText = sortedCases[0]
+    ? `${sortedCases[0][0]} (${sortedCases[0][1]}×)`
+    : "—";
+
+  elements.dashTotalSessions.textContent = String(sessions.length);
+  elements.dashCasedCount.textContent = String(casedCount);
+  elements.dashUncasedCount.textContent = String(uncasedCount);
+  elements.dashMostUsedCase.textContent = mostUsedText;
+  elements.dashCoverageBar.style.width = `${coveragePct}%`;
+  elements.dashCoverageLabel.textContent =
+    `${coveragePct}% of cohort covered (${casedCount} of ${totalStudents} students)`;
+
+  // Highlight the uncased card in amber when any students still need casing
+  elements.dashUncasedCard.classList.toggle("stat-amber", uncasedCount > 0);
+}
+
+// ─── EVENT HANDLERS ──────────────────────────────────────────────────────────
 
 async function handleSessionSubmit(event) {
   event.preventDefault();
@@ -600,6 +901,7 @@ async function handleCaseSubmit(event) {
   }
 }
 
+// Handle CSV or JSON case import (AI-assisted: Claude scaffolded the parser)
 async function handleCaseImport(event) {
   const [file] = event.target.files || [];
   if (!file) {
@@ -727,167 +1029,9 @@ function exportCases() {
   downloadJson("space-case-library.json", state.cases);
 }
 
-function renderSummary() {
-  const sessions = getSortedSessions();
-  const studentKeys = new Set(sessions.map((session) => session.studentId || normalizeText(session.studentName)));
-  const uncasedCount = Math.max(state.cohort.length - studentKeys.size, 0);
-  const latestSession = sessions[0];
-  const mostActive = getMostActiveMentor();
-  const uniqueCasesUsed = uniqueValues(sessions.map((session) => session.caseTitle));
+// ─── DATA HELPERS ─────────────────────────────────────────────────────────────
 
-  elements.summaryCohort.textContent = String(state.cohort.length);
-  elements.summaryUncased.textContent =
-    uncasedCount === 0 ? "Everyone has been cased at least once" : `${uncasedCount} still need casing`;
-  elements.summarySessions.textContent = String(sessions.length);
-  elements.summaryMostActive.textContent = mostActive
-    ? `${mostActive.name} leads with ${mostActive.count} session${mostActive.count === 1 ? "" : "s"}`
-    : "No mentor activity yet";
-  elements.summaryCases.textContent = String(state.cases.length);
-  elements.summaryCaseCoverage.textContent = uniqueCasesUsed.length
-    ? `${uniqueCasesUsed.length} unique case${uniqueCasesUsed.length === 1 ? "" : "s"} used`
-    : "No case usage yet";
-  elements.summaryReached.textContent = String(studentKeys.size);
-  elements.summaryLastSession.textContent = latestSession
-    ? `Latest: ${latestSession.mentorName} with ${latestSession.studentName} on ${formatHumanDate(latestSession.date)}`
-    : "No sessions logged yet";
-}
-
-function renderCoverageSnapshot() {
-  const studentSessionMap = buildStudentSessionMap();
-  const uncasedStudents = state.cohort.filter((student) => !(studentSessionMap.get(student.id) || []).length);
-
-  elements.uncasedList.replaceChildren();
-  if (!uncasedStudents.length) {
-    const item = document.createElement("li");
-    item.textContent = "All students have at least one logged session.";
-    elements.uncasedList.appendChild(item);
-    return;
-  }
-
-  uncasedStudents
-    .slice()
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .forEach((student) => {
-      const item = document.createElement("li");
-      item.textContent = student.name;
-      elements.uncasedList.appendChild(item);
-    });
-}
-
-function renderMentorSummary() {
-  elements.mentorSummaryBody.replaceChildren();
-
-  const rows = state.mentors.map((mentor) => {
-    const sessions = getSortedSessions().filter((session) => session.mentorId === mentor.id);
-    return {
-      mentor,
-      sessions,
-      students: uniqueValues(sessions.map((session) => session.studentName)),
-      cases: uniqueValues(sessions.map((session) => session.caseTitle)),
-    };
-  });
-
-  if (!rows.length) {
-    appendEmptyRow(elements.mentorSummaryBody, 5, "No mentor data available.");
-    return;
-  }
-
-  rows.forEach((rowData) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${escapeHtml(rowData.mentor.name)}</td>
-      <td>${rowData.sessions.length}</td>
-      <td>${escapeHtml(rowData.students.length ? rowData.students.join(", ") : "None yet")}</td>
-      <td>${escapeHtml(rowData.cases.length ? rowData.cases.join(", ") : "None yet")}</td>
-      <td>${escapeHtml(rowData.sessions[0] ? formatHumanDate(rowData.sessions[0].date) : "No activity yet")}</td>
-    `;
-    elements.mentorSummaryBody.appendChild(row);
-  });
-}
-
-function renderRecentSessions() {
-  const mentorFilter = elements.sessionFilter.value;
-  const sessions = getSortedSessions().filter((session) => {
-    return mentorFilter === "all" ? true : session.mentorId === mentorFilter;
-  });
-
-  elements.sessionTableBody.replaceChildren();
-  if (!sessions.length) {
-    appendEmptyRow(elements.sessionTableBody, 6, "No sessions in this view yet.");
-    return;
-  }
-
-  sessions.forEach((session) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${escapeHtml(formatHumanDate(session.date))}</td>
-      <td>${escapeHtml(session.mentorName)}</td>
-      <td>${escapeHtml(session.studentName)}</td>
-      <td>${escapeHtml(session.caseTitle)}</td>
-      <td>${escapeHtml(session.notes || "No notes")}</td>
-      <td><button class="link-button" type="button" data-action="delete-session" data-id="${session.id}">Delete</button></td>
-    `;
-    elements.sessionTableBody.appendChild(row);
-  });
-}
-
-function renderCohortTable() {
-  const searchTerm = normalizeText(elements.cohortSearch.value);
-  const studentSessionMap = buildStudentSessionMap();
-  const students = state.cohort
-    .slice()
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .filter((student) => normalizeText(student.name).includes(searchTerm));
-
-  elements.cohortTableBody.replaceChildren();
-  if (!students.length) {
-    appendEmptyRow(elements.cohortTableBody, 5, "No students match that search.");
-    return;
-  }
-
-  students.forEach((student) => {
-    const sessions = studentSessionMap.get(student.id) || [];
-    const mentors = uniqueValues(sessions.map((session) => session.mentorName));
-    const cases = uniqueValues(sessions.map((session) => session.caseTitle));
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${escapeHtml(student.name)}</td>
-      <td>${renderStatusTagHtml(sessions.length ? `${sessions.length} session${sessions.length === 1 ? "" : "s"}` : "Needs casing", !sessions.length)}</td>
-      <td>${escapeHtml(mentors.length ? mentors.join(", ") : "Not yet assigned")}</td>
-      <td>${escapeHtml(cases.length ? cases.join(", ") : "No cases logged")}</td>
-      <td>${escapeHtml(sessions[0] ? formatHumanDate(sessions[0].date) : "No activity yet")}</td>
-    `;
-    elements.cohortTableBody.appendChild(row);
-  });
-}
-
-function renderCaseTable() {
-  const cases = state.cases.slice().sort((left, right) => left.title.localeCompare(right.title));
-  elements.caseTableBody.replaceChildren();
-
-  if (!cases.length) {
-    appendEmptyRow(elements.caseTableBody, 6, "The case library is empty.");
-    return;
-  }
-
-  cases.forEach((caseItem) => {
-    const usageCount = state.sessions.filter((session) => session.caseId === caseItem.id || session.caseTitle === caseItem.title).length;
-    const sourceCell = caseItem.link
-      ? `<a class="table-link" href="${escapeAttribute(caseItem.link)}" target="_blank" rel="noreferrer">Open link</a>`
-      : "No link";
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${escapeHtml(caseItem.title)}</td>
-      <td>${escapeHtml(caseItem.category || "Not set")}</td>
-      <td>${escapeHtml(caseItem.difficulty || "Not set")}</td>
-      <td>${usageCount}</td>
-      <td>${sourceCell}</td>
-      <td><button class="link-button" type="button" data-action="delete-case" data-id="${caseItem.id}">Delete</button></td>
-    `;
-    elements.caseTableBody.appendChild(row);
-  });
-}
-
+// Build a map of studentId → sessions[] for O(1) lookups in render functions
 function buildStudentSessionMap() {
   const map = new Map();
   getSortedSessions().forEach((session) => {
@@ -899,6 +1043,7 @@ function buildStudentSessionMap() {
   return map;
 }
 
+// Return sessions sorted newest-first
 function getSortedSessions() {
   return state.sessions
     .slice()
@@ -911,6 +1056,7 @@ function getSortedSessions() {
     });
 }
 
+// Return the mentor with the most sessions, or null
 function getMostActiveMentor() {
   const counts = state.mentors
     .map((mentor) => ({
@@ -922,6 +1068,8 @@ function getMostActiveMentor() {
 
   return counts[0] || null;
 }
+
+// ─── STORAGE HELPERS ─────────────────────────────────────────────────────────
 
 function loadLocalSnapshot() {
   for (const key of LOCAL_STORAGE_FALLBACK_KEYS) {
@@ -942,6 +1090,7 @@ function saveLocalSnapshot(snapshot) {
   localStorage.setItem(LOCAL_STORAGE_PRIMARY_KEY, JSON.stringify(snapshot));
 }
 
+// Merge imported state with defaults, sanitize all arrays
 function normalizeState(input) {
   const defaults = buildDefaultState();
   const mentors = mergePeople(defaults.mentors, input?.mentors, "mentor");
@@ -996,6 +1145,7 @@ function sanitizeSessions(input) {
     .filter((session) => session.date && session.mentorName && session.studentName && session.caseTitle);
 }
 
+// Re-link session mentorId/studentId fields after a state merge
 function alignSessionReferences(sessions, mentors, cohort) {
   const mentorLookup = new Map(mentors.map((mentor) => [normalizeText(mentor.name), mentor.id]));
   const studentLookup = new Map(cohort.map((student) => [normalizeText(student.name), student.id]));
@@ -1007,6 +1157,7 @@ function alignSessionReferences(sessions, mentors, cohort) {
   }));
 }
 
+// Merge two people arrays by normalized name, preserving existing IDs
 function mergePeople(defaultPeople, importedPeople, kind) {
   const map = new Map(defaultPeople.map((person) => [normalizeText(person.name), person]));
 
@@ -1070,6 +1221,8 @@ function findPersonByName(collection, name) {
   return collection.find((person) => normalizeText(person.name) === key) || null;
 }
 
+// ─── IMPORT / EXPORT ─────────────────────────────────────────────────────────
+
 function parseCaseJson(content) {
   const parsed = JSON.parse(content);
   const cases = Array.isArray(parsed) ? parsed : parsed.cases;
@@ -1079,6 +1232,7 @@ function parseCaseJson(content) {
   return cases.map(normalizeCaseInput).filter((caseItem) => caseItem.title);
 }
 
+// Parse CSV headers case-insensitively so imports work regardless of how the file was exported
 function parseCaseCsv(content) {
   const rows = parseCsv(content);
   if (!rows.length) {
@@ -1158,6 +1312,8 @@ function parseCsv(content) {
   return rows;
 }
 
+// ─── SUPABASE ROW MAPPERS ─────────────────────────────────────────────────────
+
 function mapStudentStateToRow(student) {
   return {
     id: student.id,
@@ -1223,6 +1379,8 @@ function mapSessionRowToState(row) {
     createdAt: String(row.created_at || "").trim(),
   };
 }
+
+// ─── UTILITIES ───────────────────────────────────────────────────────────────
 
 function readTextFile(file) {
   return new Promise((resolve, reject) => {

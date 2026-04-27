@@ -1,3 +1,11 @@
+/*
+ * SPACE Mentor Tracker — css/style.css
+ * Microsoft-inspired design system: Segoe UI typography, neutral palette,
+ * accent green, full dark-mode support via CSS custom properties.
+ */
+
+/* === VARIABLES === */
+
 :root {
   --page-bg: #f3f2f1;
   --surface: #ffffff;
@@ -14,14 +22,39 @@
   --radius: 10px;
   --radius-sm: 6px;
   --content-width: 1360px;
+  --input-bg: #ffffff;
+  --btn-secondary-bg: #ffffff;
 }
+
+/* === DARK THEME === */
+
+[data-theme="dark"] {
+  --page-bg: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface-alt: #3a3a3c;
+  --border: #3a3a3c;
+  --border-strong: #545458;
+  --text: #f2f2f7;
+  --muted: #aeaeb2;
+  --accent: #30db9e;
+  --accent-dark: #24b47e;
+  --danger: #ff6b6b;
+  --danger-soft: #3d1c1c;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --input-bg: #1c1c1e;
+  --btn-secondary-bg: #3a3a3c;
+}
+
+/* === RESET === */
 
 * {
   box-sizing: border-box;
 }
 
+/* === BASE === */
+
 html {
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 body {
@@ -30,9 +63,13 @@ body {
   background: var(--page-bg);
   color: var(--text);
   font-family: "Segoe UI", "Aptos", Arial, sans-serif;
+  transition: background 0.2s, color 0.2s;
 }
 
+/* === BRAND STRIP === */
+
 .brand-strip {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -46,6 +83,36 @@ body {
   display: block;
   height: auto;
 }
+
+/* Theme toggle sits in the top-right of the brand strip */
+.theme-toggle {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* === LAYOUT === */
 
 .app-shell {
   width: min(calc(100% - 32px), var(--content-width));
@@ -76,6 +143,8 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
+
+/* === WORKSPACE HEADER === */
 
 .workspace-header {
   justify-content: space-between;
@@ -163,6 +232,8 @@ code,
   font-weight: 600;
 }
 
+/* === SUMMARY CARDS === */
+
 .summary-grid {
   flex-wrap: wrap;
   margin-bottom: 18px;
@@ -186,11 +257,17 @@ code,
   font-weight: 600;
 }
 
+/* === NAVIGATION === */
+
 .tab-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   align-items: end;
   padding: 0 0 2px;
   margin-bottom: 18px;
   border-bottom: 1px solid var(--border);
+  background: var(--page-bg);
 }
 
 .tab-button {
@@ -201,6 +278,7 @@ code,
   color: var(--muted);
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .tab-button:hover,
@@ -212,6 +290,8 @@ code,
   color: var(--text);
   border-bottom-color: var(--accent);
 }
+
+/* === PANELS === */
 
 .panel-stack {
   display: block;
@@ -240,6 +320,8 @@ code,
   margin: 0;
 }
 
+/* === CARDS === */
+
 .surface-card {
   padding: 20px;
 }
@@ -267,6 +349,8 @@ code,
 .section-header p {
   margin: 4px 0 0;
 }
+
+/* === FORMS === */
 
 .form-grid {
   display: grid;
@@ -301,7 +385,7 @@ textarea {
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--input-bg);
   color: var(--text);
   outline: none;
 }
@@ -331,6 +415,8 @@ textarea {
   margin: 0;
 }
 
+/* === BUTTONS === */
+
 .button {
   position: relative;
   display: inline-flex;
@@ -358,7 +444,7 @@ textarea {
 }
 
 .button.secondary {
-  background: #ffffff;
+  background: var(--btn-secondary-bg);
   border-color: var(--border-strong);
   color: var(--text);
 }
@@ -429,6 +515,8 @@ textarea {
   margin: 0 0 6px;
 }
 
+/* === TABLES === */
+
 .table-toolbar {
   justify-content: space-between;
   align-items: end;
@@ -485,6 +573,19 @@ tbody tr:hover {
   color: #8a6f00;
 }
 
+[data-theme="dark"] .tag {
+  background: rgba(48, 219, 158, 0.15);
+}
+
+[data-theme="dark"] .tag-muted {
+  background: var(--surface-alt);
+}
+
+[data-theme="dark"] .tag-warning {
+  background: rgba(255, 200, 0, 0.15);
+  color: #ffd43b;
+}
+
 .empty-state {
   padding: 18px;
   border: 1px dashed var(--border-strong);
@@ -517,11 +618,115 @@ tbody tr:hover {
   text-decoration: underline;
 }
 
+[data-theme="dark"] .table-link {
+  color: #4db8ff;
+}
+
 code {
   font-family: Consolas, "Courier New", monospace;
 }
 
-@media (max-width: 1080px) {
+/* === DASHBOARD === */
+
+/* Stat card grid: 3 columns on desktop, 2 on tablet, 1 on mobile */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Amber highlight when there are uncased students */
+.stat-card.stat-amber {
+  border-color: #d4a017;
+  background: #fffbf0;
+}
+
+[data-theme="dark"] .stat-card.stat-amber {
+  border-color: #ffd43b;
+  background: rgba(255, 212, 59, 0.08);
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+/* Smaller value style for text-heavy stats like case titles */
+.stat-value-sm {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+/* Progress bar container */
+.progress-track {
+  width: 100%;
+  height: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+/* Inner fill — width set via inline style as a percentage */
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* === FOCUS & ACCESSIBILITY === */
+
+/* Visible focus ring for all interactive elements */
+:focus-visible {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/* Override for elements that have their own focus style */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* === RESPONSIVE — TABLET (768px) === */
+
+@media (max-width: 768px) {
   .workspace-header,
   .panel-heading,
   .table-toolbar {
@@ -539,19 +744,50 @@ code {
   .cases-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Tabs scroll horizontally on narrow screens */
+  .tab-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Header image scales down proportionally */
+  .brand-strip img {
+    width: min(100%, 340px);
+  }
+
+  /* Stat grid drops to 2 columns */
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-@media (max-width: 760px) {
+/* === RESPONSIVE — MOBILE (480px) === */
+
+@media (max-width: 480px) {
   .app-shell {
     width: min(calc(100% - 20px), var(--content-width));
   }
 
-  .workspace-header,
-  .surface-card,
-  .summary-card {
-    padding: 16px;
+  /* Reduced heading sizes */
+  .workspace-header h1 {
+    font-size: 1.5rem;
   }
 
+  .panel-heading h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Tighter padding on cards */
+  .workspace-header,
+  .surface-card,
+  .summary-card,
+  .stat-card {
+    padding: 14px;
+  }
+
+  /* Single-column form grid */
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -560,6 +796,7 @@ code {
     width: 100%;
   }
 
+  /* Buttons and actions stack vertically, full-width */
   .action-row,
   .form-actions {
     flex-direction: column;
@@ -568,5 +805,22 @@ code {
 
   .button {
     width: 100%;
+  }
+
+  /* Form inputs full-width (already 100% but explicit) */
+  input,
+  select,
+  textarea {
+    width: 100%;
+  }
+
+  /* Single column stat grid */
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Slightly smaller stat numbers on mobile */
+  .stat-value {
+    font-size: 1.8rem;
   }
 }

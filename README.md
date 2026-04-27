@@ -1,56 +1,41 @@
 # SPACE Mentor Tracker
 
-A lightweight tracker for the SPACE program. It lets mentors record:
+A lightweight, real-time session tracker for SPACE program mentors at Babson College. Log who cased whom, track cohort coverage, manage a shared case library, and monitor session stats — all from one shared web app.
 
-- who they cased
-- what case they used
-- which cohort members still need coverage
-- the current shared case library
+## Live Demo
+[https://SumairNibber.github.io/SPACE](https://SumairNibber.github.io/SPACE)
 
-## What changed in this version
+## Features
+- **Session Logging** — Record mentor name, student cased, case used, and notes
+- **Cohort Roster** — View all students with their current casing status; search by name
+- **Case Library** — Add, search, and delete cases; import via CSV or JSON; export the full library
+- **Dashboard** — Live stats: total sessions, unique students cased, students not yet cased, most-used case, and cohort coverage progress bar
+- **Dark / Light Theme Toggle** — Persists across sessions via localStorage
+- **Real-time Shared Storage** — Supabase backend syncs data across all users; falls back to localStorage if cloud is unavailable
+- **Responsive Design** — Works on mobile, tablet, and desktop
 
-- The header now runs across the top of the app instead of using a side hero layout.
-- The UI has been simplified to feel more like an internal Microsoft-style tool.
-- Case deletion is available directly in the case library table.
-- The app now supports shared cloud storage for GitHub Pages through Supabase, with local browser fallback if cloud storage is not configured.
+## Technologies Used
+- HTML5 (semantic markup, ARIA attributes)
+- CSS3 (Flexbox, Grid, custom properties, media queries, dark theme)
+- Vanilla JavaScript ES6+ (modules, async/await, fetch API)
+- [Supabase](https://supabase.com) — PostgreSQL database with REST API for shared persistent storage
+- localStorage — offline/fallback storage
+- GitHub Pages — static hosting and deployment
 
-## Files
+## AI Tools Used
+- **Claude (claude.ai)** — Scaffolded the Supabase storage abstraction layer, the CSV/JSON import parser, and the dashboard stats renderer. Also used for code review and debugging the async storage initialization flow.
+- **GitHub Copilot** — Assisted with autocompletion throughout, particularly in repetitive DOM render functions and CSS rule generation.
 
-- [index.html](/c:/GITHUB/SPACE/index.html) - app layout
-- [styles.css](/c:/GITHUB/SPACE/styles.css) - app styling
-- [app.js](/c:/GITHUB/SPACE/app.js) - tracker logic and storage layer
-- [storage-config.js](/c:/GITHUB/SPACE/storage-config.js) - deployment-time storage settings
-- [supabase-schema.sql](/c:/GITHUB/SPACE/supabase-schema.sql) - shared storage tables and policies
+All AI-generated code was reviewed, tested, and understood before inclusion. Comments in the source mark specific AI-assisted sections.
 
-## Local use
+## Challenges & Solutions
+- **GitHub Pages can't store shared data** — Solved by integrating Supabase as a backend with an anonymous public API key, with automatic fallback to localStorage so the app still works offline or before Supabase is configured.
+- **Keeping cohort state in sync across multiple users** — Solved with a polling refresh (every 60 seconds) that re-fetches Supabase data and merges it with local state without wiping unsaved form inputs.
+- **CSV import with inconsistent column names** — Solved by normalizing headers to lowercase and trimming whitespace before mapping, so imports work regardless of how the CSV was exported.
 
-1. Open [index.html](/c:/GITHUB/SPACE/index.html) in a browser.
-2. If `storage-config.js` is left in `local` mode, data is saved only in that browser.
-
-## Shared storage for GitHub Pages
-
-GitHub Pages can host the site, but it cannot store shared edits by itself. For shared session tracking, this app is set up to use Supabase.
-
-### Setup
-
-1. Create a Supabase project.
-2. Run [supabase-schema.sql](/c:/GITHUB/SPACE/supabase-schema.sql) in the Supabase SQL editor.
-3. Open [storage-config.js](/c:/GITHUB/SPACE/storage-config.js).
-4. Set:
-   - `provider` to `"supabase"`
-   - `supabaseUrl` to your project URL
-   - `supabaseAnonKey` to your public anon key
-5. Deploy the repo to GitHub Pages.
-
-### Notes
-
-- In `local` mode, the app uses browser storage only.
-- In `supabase` mode, the app loads shared data, writes changes to Supabase, and refreshes on a timer.
-- Backup import/export stays available in both modes.
-
-## Case imports
-
-You can import either:
-
-- `.json` with an array of case objects or an object with a `cases` array
-- `.csv` with headers such as `title`, `category`, `difficulty`, `link`, `notes`
+## Future Improvements
+- User authentication (Supabase Auth) so each mentor has a personal login and session history
+- Chart.js integration on the Dashboard to visualize casing frequency over time
+- Push notifications or email alerts when a student hasn't been cased in over a week
+- PWA (Progressive Web App) support so mentors can install it on their phones and use it offline
+- Admin view to manage the cohort roster and set required casing targets per student

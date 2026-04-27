@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SPACE Mentor Tracker — log mentor sessions, track cohort coverage, and manage the shared case library for the SPACE program.">
   <title>SPACE Mentor Tracker</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="brand-strip">
-    <img src="assets/space-header.png" alt="SPACE program logo">
+    <img src="assets/images/space-header.png" alt="SPACE program logo">
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </header>
 
   <div class="app-shell">
@@ -33,7 +35,7 @@
           <button class="button secondary" id="export-data" type="button">Export backup</button>
           <label class="button secondary file-button" for="import-data">
             Import backup
-            <input id="import-data" type="file" accept=".json">
+            <input id="import-data" type="file" accept=".json" aria-label="Import backup file">
           </label>
         </div>
       </div>
@@ -63,17 +65,20 @@
     </section>
 
     <nav class="tab-bar" aria-label="Tracker sections">
-      <button class="tab-button active" data-tab="tracker" type="button">Mentor Tracker</button>
-      <button class="tab-button" data-tab="cohort" type="button">Cohort Coverage</button>
+      <button class="tab-button active" data-tab="sessions" type="button">Sessions</button>
+      <button class="tab-button" data-tab="cohort" type="button">Cohort</button>
       <button class="tab-button" data-tab="cases" type="button">Case Library</button>
+      <button class="tab-button" data-tab="dashboard" type="button">Dashboard</button>
     </nav>
 
-    <main class="panel-stack">
-      <section class="panel active" id="panel-tracker" aria-labelledby="tracker-heading">
+    <main class="panel-stack" role="main">
+
+      <!-- ── SESSIONS PANEL ── -->
+      <section class="panel active" id="view-sessions" aria-labelledby="sessions-heading">
         <div class="panel-heading">
           <div>
             <p class="section-kicker">Tracker</p>
-            <h2 id="tracker-heading">Log mentor sessions and review recent activity.</h2>
+            <h2 id="sessions-heading">Log mentor sessions and review recent activity.</h2>
           </div>
           <p class="section-copy">
             This tab is the working log for the program. Add sessions here and use the tables below to track coverage.
@@ -90,34 +95,34 @@
             </div>
 
             <div class="form-grid">
-              <label class="field">
+              <label class="field" for="session-date">
                 <span>Date</span>
                 <input id="session-date" name="sessionDate" type="date" required>
               </label>
 
-              <label class="field">
+              <label class="field" for="session-mentor">
                 <span>Mentor</span>
                 <select id="session-mentor" name="mentor" required></select>
               </label>
 
-              <label class="field">
+              <label class="field" for="session-student">
                 <span>Cohort member</span>
                 <select id="session-student" name="student" required></select>
               </label>
 
-              <label class="field">
+              <label class="field" for="session-case">
                 <span>Case from library</span>
                 <select id="session-case" name="case">
                   <option value="">Select a case</option>
                 </select>
               </label>
 
-              <label class="field field-wide">
+              <label class="field field-wide" for="session-custom-case">
                 <span>New case title</span>
                 <input id="session-custom-case" name="customCase" type="text" placeholder="Use this if the case is not in the library yet">
               </label>
 
-              <label class="field field-wide">
+              <label class="field field-wide" for="session-notes">
                 <span>Notes</span>
                 <textarea id="session-notes" name="notes" rows="4" placeholder="Optional session notes"></textarea>
               </label>
@@ -145,7 +150,7 @@
             <div class="info-stack">
               <div class="info-block">
                 <span class="info-label">Students still uncased</span>
-                <ul class="simple-list" id="uncased-list"></ul>
+                <ul class="simple-list" id="uncased-list" aria-live="polite"></ul>
               </div>
 
               <div class="info-block">
@@ -191,7 +196,7 @@
               </div>
             </div>
 
-            <label class="field field-compact">
+            <label class="field field-compact" for="session-filter">
               <span>Filter by mentor</span>
               <select id="session-filter">
                 <option value="all">All mentors</option>
@@ -217,7 +222,8 @@
         </section>
       </section>
 
-      <section class="panel" id="panel-cohort" aria-labelledby="cohort-heading">
+      <!-- ── COHORT PANEL ── -->
+      <section class="panel" id="view-cohort" aria-labelledby="cohort-heading">
         <div class="panel-heading">
           <div>
             <p class="section-kicker">Cohort</p>
@@ -238,7 +244,7 @@
                 </div>
               </div>
 
-              <label class="field field-compact">
+              <label class="field field-compact" for="cohort-search">
                 <span>Search students</span>
                 <input id="cohort-search" type="search" placeholder="Search by name">
               </label>
@@ -269,7 +275,7 @@
             </div>
 
             <form id="student-form">
-              <label class="field">
+              <label class="field" for="student-name">
                 <span>Full name</span>
                 <input id="student-name" name="studentName" type="text" required placeholder="New cohort member">
               </label>
@@ -283,7 +289,8 @@
         </div>
       </section>
 
-      <section class="panel" id="panel-cases" aria-labelledby="cases-heading">
+      <!-- ── CASE LIBRARY PANEL ── -->
+      <section class="panel" id="view-cases" aria-labelledby="cases-heading">
         <div class="panel-heading">
           <div>
             <p class="section-kicker">Cases</p>
@@ -304,17 +311,17 @@
             </div>
 
             <form class="form-grid" id="case-form">
-              <label class="field">
+              <label class="field" for="case-title">
                 <span>Case title</span>
                 <input id="case-title" name="title" type="text" required placeholder="Case title">
               </label>
 
-              <label class="field">
+              <label class="field" for="case-category">
                 <span>Category</span>
                 <input id="case-category" name="category" type="text" placeholder="Category">
               </label>
 
-              <label class="field">
+              <label class="field" for="case-difficulty">
                 <span>Difficulty</span>
                 <select id="case-difficulty" name="difficulty">
                   <option value="">Select difficulty</option>
@@ -324,12 +331,12 @@
                 </select>
               </label>
 
-              <label class="field">
+              <label class="field" for="case-link">
                 <span>Source or link</span>
                 <input id="case-link" name="link" type="url" placeholder="https://">
               </label>
 
-              <label class="field field-wide">
+              <label class="field field-wide" for="case-notes">
                 <span>Notes</span>
                 <textarea id="case-notes" name="notes" rows="4" placeholder="Optional notes"></textarea>
               </label>
@@ -352,7 +359,7 @@
             <div class="stack-actions">
               <label class="button secondary file-button" for="case-import">
                 Import CSV or JSON
-                <input id="case-import" type="file" accept=".csv,.json">
+                <input id="case-import" type="file" accept=".csv,.json" aria-label="Import cases from CSV or JSON file">
               </label>
 
               <button class="button secondary" id="export-cases" type="button">Export case library</button>
@@ -390,10 +397,55 @@
           </div>
         </section>
       </section>
+
+      <!-- ── DASHBOARD PANEL ── -->
+      <section class="panel" id="view-dashboard" aria-labelledby="dashboard-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Dashboard</p>
+            <h2 id="dashboard-heading">Live program stats and coverage overview.</h2>
+          </div>
+          <p class="section-copy">
+            Stats update automatically as sessions, cohort, and cases change.
+          </p>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-label">Total sessions logged</span>
+            <strong class="stat-value" id="dash-total-sessions">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Unique students cased</span>
+            <strong class="stat-value" id="dash-cased-count">0</strong>
+          </div>
+          <div class="stat-card" id="dash-uncased-card">
+            <span class="stat-label">Students not yet cased</span>
+            <strong class="stat-value" id="dash-uncased-count">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Most-used case</span>
+            <strong class="stat-value-sm" id="dash-most-used-case">—</strong>
+          </div>
+        </div>
+
+        <div class="surface-card">
+          <div class="section-header">
+            <div>
+              <h3>Cohort coverage</h3>
+              <p id="dash-coverage-label">0% of cohort covered (0 of 0 students)</p>
+            </div>
+          </div>
+          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Cohort coverage percentage">
+            <div class="progress-bar" id="dash-coverage-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
-  <script src="storage-config.js"></script>
-  <script src="app.js"></script>
+  <script src="js/storage-config.js"></script>
+  <script src="js/main.js" defer></script>
 </body>
 </html>
